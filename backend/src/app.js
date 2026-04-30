@@ -5,6 +5,9 @@ import morgan from "morgan";
 import mongoSanitize from "express-mongo-sanitize";
 import dotenv from "dotenv";
 
+import errorHandler from "./middleware/errorHandler.js";
+import { apiLimiter } from "./middleware/rateLimiter.js";
+
 dotenv.config();
 
 const app = express();
@@ -38,6 +41,9 @@ if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
+// Rate Limiting
+app.use("/api", apiLimiter);
+
 // Health Check
 app.get("/api/health", (req, res) => {
   res.status(200).json({
@@ -55,5 +61,8 @@ app.use("*", (req, res) => {
     message: `Route ${req.originalUrl} not found`,
   });
 });
+
+// Global Error Handler
+app.use(errorHandler);
 
 export default app;
