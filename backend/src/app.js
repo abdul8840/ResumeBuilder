@@ -5,10 +5,13 @@ import morgan from "morgan";
 import mongoSanitize from "express-mongo-sanitize";
 import dotenv from "dotenv";
 
+import authRoutes from "./routes/authRoutes.js";
+import resumeRoutes from "./routes/resumeRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
+import imageRoutes from "./routes/imageRoutes.js";
+import analyticsRoutes from "./routes/analyticsRoutes.js";
 import errorHandler from "./middleware/errorHandler.js";
 import { apiLimiter } from "./middleware/rateLimiter.js";
-
-import authRoutes from "./routes/authRoutes.js";
 
 dotenv.config();
 
@@ -58,6 +61,10 @@ app.get("/api/health", (req, res) => {
 
 // API Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/resumes", resumeRoutes);
+app.use("/api/ai", aiRoutes);
+app.use("/api/images", imageRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 // 404 Handler
 app.use("*", (req, res) => {
