@@ -8,6 +8,8 @@ import dotenv from "dotenv";
 import errorHandler from "./middleware/errorHandler.js";
 import { apiLimiter } from "./middleware/rateLimiter.js";
 
+import authRoutes from "./routes/authRoutes.js";
+
 dotenv.config();
 
 const app = express();
@@ -53,6 +55,9 @@ app.get("/api/health", (req, res) => {
     environment: process.env.NODE_ENV,
   });
 });
+
+// API Routes
+app.use("/api/auth", authRoutes);
 
 // 404 Handler
 app.use("*", (req, res) => {
