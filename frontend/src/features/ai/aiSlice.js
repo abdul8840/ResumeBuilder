@@ -368,6 +368,8 @@ export const selectJobLoading = (state) => state.ai.jobLoading;
 export const selectKeywordOptimization = (state) =>
   state.ai.keywordOptimization;
 export const selectKeywordsLoading = (state) => state.ai.keywordsLoading;
+export const selectProjectDescription = (state) => state.ai.projectDescription;
+export const selectProjectLoading = (state) => state.ai.projectLoading; // ✅ Added missing selector
 export const selectImprovementTips = (state) => state.ai.improvementTips;
 export const selectTipsLoading = (state) => state.ai.tipsLoading;
 export const selectActiveFeature = (state) => state.ai.activeFeature;

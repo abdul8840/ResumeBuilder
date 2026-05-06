@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
@@ -9,9 +9,15 @@ import {
 } from "lucide-react";
 
 import {
-  fetchResume, loadResumeForEdit, resetActiveResume,
-  selectCurrentResume, selectResumeLoading,
-  selectActiveResumeData, setTemplate, setColorScheme,
+  fetchResumeById,
+  createNewResume,
+  resetActiveResume,
+  selectActiveResumeData,
+  selectResumeLoading,
+  selectResumeError,
+  setTemplate, 
+  setColorScheme,
+  updateLocalResume,
 } from "../../features/resume/resumeSlice.js";
 import { exportToPDF, getResumeFilename } from "../../utils/pdfExport.js";
 import { resumeService } from "../../services/resumeService.js";
@@ -22,6 +28,7 @@ import Badge from "../../components/common/Badge.jsx";
 import Modal from "../../components/common/Modal.jsx";
 import Loader from "../../components/common/Loader.jsx";
 import { TEMPLATES, COLOR_PRESETS } from "../../utils/constants.js";
+import toast from "react-hot-toast";
 
 const PREVIEW_SCALES = {
   sm: 0.4,
@@ -36,9 +43,9 @@ const ResumeBuilderPage = () => {
   const [searchParams] = useSearchParams();
 
   const isNew = id === "new";
-  const currentResume = useSelector(selectCurrentResume);
   const isLoading = useSelector(selectResumeLoading);
   const resumeData = useSelector(selectActiveResumeData);
+  const error = useSelector(selectResumeError);
 
   const [showPreview, setShowPreview] = useState(true);
   const [showTemplates, setShowTemplates] = useState(false);
@@ -46,36 +53,137 @@ const ResumeBuilderPage = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [previewScale, setPreviewScale] = useState("sm");
   const [fullPreview, setFullPreview] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Load resume
   useEffect(() => {
-    if (!isNew) {
-      dispatch(fetchResume(id)).then((result) => {
-        if (fetchResume.fulfilled.match(result)) {
-          dispatch(loadResumeForEdit(result.payload.data.resume));
+    const loadResume = async () => {
+      // Prevent multiple loads
+      if (isInitialized) return;
+      
+      try {
+        if (!isNew && id) {
+          // We have a valid ID, fetch the resume
+          console.log("Fetching resume with ID:", id);
+          const result = await dispatch(fetchResumeById(id)).unwrap();
+          
+          if (result?.data?.resume) {
+            console.log("Resume loaded successfully");
+            // Resume data is already set by the thunk
+          }
+        } else if (isNew) {
+          // Creating a new resume
+          console.log("Creating new resume");
+          const result = await dispatch(createNewResume({
+            title: "Untitled Resume",
+            template: "modern",
+            colorScheme: {
+              primary: "#6366f1",
+              secondary: "#8b5cf6",
+              accent: "#ec4899",
+            },
+            personalInfo: {
+              fullName: "Your Name",
+              email: "",
+              phone: "",
+              location: "",
+            },
+            projects: [],
+            experience: [],
+            education: [],
+            skills: [],
+            certifications: [],
+          })).unwrap();
+          
+          console.log("New resume created:", result);
+        } else {
+          console.error("No valid resume ID provided");
+          toast.error("Invalid resume ID");
+          navigate("/resumes");
+          return;
         }
-      });
-    } else {
-      dispatch(resetActiveResume());
-    }
-    return () => {};
-  }, [id, isNew, dispatch]);
+        
+        setIsInitialized(true);
+      } catch (err) {
+        console.error("Error loading resume:", err);
+        toast.error(err?.message || "Failed to load resume");
+        navigate("/resumes");
+      }
+    };
+
+    loadResume();
+
+    // Cleanup function
+    return () => {
+      // Don't reset on unmount if it's a new resume being created
+      if (isNew && !isInitialized) {
+        // Optional: cleanup for new resume
+      }
+    };
+  }, [id, isNew, dispatch, navigate, isInitialized]);
+
+  // Auto-save functionality (optional)
+  useEffect(() => {
+    if (!isInitialized || !resumeData || isNew) return;
+    
+    const autoSaveTimeout = setTimeout(async () => {
+      try {
+        console.log("Auto-saving resume...");
+        await resumeService.updateResume(id, resumeData);
+        toast.success("Auto-saved", { icon: "💾", duration: 2000 });
+      } catch (err) {
+        console.error("Auto-save failed:", err);
+      }
+    }, 3000);
+    
+    return () => clearTimeout(autoSaveTimeout);
+  }, [resumeData, id, isInitialized, isNew]);
 
   const handleExportPDF = async () => {
+    if (!resumeData) {
+      toast.error("No resume data to export");
+      return;
+    }
+    
     setIsExporting(true);
     try {
       const filename = getResumeFilename(resumeData);
       await exportToPDF("resume-preview", filename);
-      if (!isNew) await resumeService.trackDownload(id);
+      if (!isNew && id) {
+        await resumeService.trackDownload(id);
+        toast.success("Download tracked successfully");
+      }
     } catch (err) {
       console.error("Export failed:", err);
+      toast.error("Failed to export PDF");
     } finally {
       setIsExporting(false);
     }
   };
 
-  if (isLoading && !isNew) {
+  // Show loading state
+  if (isLoading && !isInitialized) {
     return <Loader fullScreen message="Loading resume..." />;
+  }
+
+  // Show error state
+  if (error && !resumeData) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-slate-50">
+        <div className="text-center">
+          <div className="text-red-600 text-lg font-semibold mb-4">Error loading resume</div>
+          <p className="text-slate-600 mb-6">{error}</p>
+          <Button onClick={() => navigate("/resumes")}>
+            Back to Resumes
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show empty state for new resume without data
+  if (isNew && !resumeData) {
+    return <Loader fullScreen message="Creating new resume..." />;
   }
 
   return (
@@ -159,7 +267,10 @@ const ResumeBuilderPage = () => {
             ${showPreview ? "hidden lg:block" : "block"}
             border-r border-slate-100
           `}
-          style={{ display: !showPreview || window.innerWidth >= 1024 ? "flex" : "none", flexDirection: "column" }}
+          style={{ 
+            display: (!showPreview || window.innerWidth >= 1024) ? "flex" : "none", 
+            flexDirection: "column" 
+          }}
         >
           <ResumeBuilder
             resumeId={id}
@@ -170,8 +281,9 @@ const ResumeBuilderPage = () => {
 
         {/* Preview Panel */}
         <AnimatePresence>
-          {showPreview && (
+          {showPreview && resumeData && (
             <motion.div
+              key="preview-panel"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
@@ -233,6 +345,7 @@ const ResumeBuilderPage = () => {
                 onClick={() => {
                   dispatch(setTemplate(template.id));
                   setShowTemplates(false);
+                  toast.success(`${template.name} template applied`);
                 }}
                 className={`
                   cursor-pointer rounded-2xl overflow-hidden border-2 transition-all
@@ -291,6 +404,7 @@ const ResumeBuilderPage = () => {
                       secondary: preset.secondary,
                       accent: preset.accent || preset.primary,
                     }));
+                    toast.success(`${preset.name} theme applied`);
                   }}
                   className="flex items-center gap-3 p-3 rounded-xl border-2 border-slate-100 hover:border-slate-200 transition-all text-left"
                 >

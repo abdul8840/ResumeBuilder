@@ -10,8 +10,10 @@ import {
   selectActiveResumeData,
 } from "../../../features/resume/resumeSlice.js";
 import {
-  generateProjectDescription, selectProjectLoading,
-  selectAI, clearAIResults,
+  generateProjectDescription,
+  selectProjectLoading,
+  selectProjectDescription,
+  clearAIResults,
 } from "../../../features/ai/aiSlice.js";
 import { createEmptyProject } from "../../../utils/helpers.js";
 import Button from "../../common/Button.jsx";
@@ -21,7 +23,8 @@ import Modal from "../../common/Modal.jsx";
 
 const ProjectItem = ({ project, index, onUpdate, onRemove }) => {
   const dispatch = useDispatch();
-  const { projectLoading, projectDescription } = useSelector(selectAI);
+  const projectLoading = useSelector(selectProjectLoading);
+  const projectDescription = useSelector(selectProjectDescription);
   const [expanded, setExpanded] = useState(index === 0);
   const [newTech, setNewTech] = useState("");
   const [newHighlight, setNewHighlight] = useState("");
@@ -46,7 +49,9 @@ const ProjectItem = ({ project, index, onUpdate, onRemove }) => {
       projectName: project.name,
       technologies: project.technologies,
       role: "Developer",
-      duration: `${project.startDate} - ${project.endDate || "Present"}`,
+      duration: `${project.startDate || ""} - ${project.endDate || "Present"}`,
+      currentDescription: project.description || "",
+      currentHighlights: project.highlights || [],
     }));
     setShowAIResult(true);
   };
@@ -54,7 +59,7 @@ const ProjectItem = ({ project, index, onUpdate, onRemove }) => {
   const applyAIResult = () => {
     if (projectDescription) {
       onUpdate(project.id, {
-        description: projectDescription.description || project.description,
+        description: projectDescription.description || projectDescription || project.description,
         highlights: projectDescription.highlights || project.highlights,
         aiEnhanced: true,
       });
@@ -287,33 +292,48 @@ const ProjectItem = ({ project, index, onUpdate, onRemove }) => {
         size="md"
       >
         <div className="p-6 space-y-4">
-          {projectDescription?.description && (
+          {/* Handle both string and object responses */}
+          {typeof projectDescription === 'string' && (
             <div>
-              <h4 className="text-sm font-semibold text-slate-700 mb-2">Description</h4>
+              <h4 className="text-sm font-semibold text-slate-700 mb-2">Generated Description</h4>
               <p className="text-sm text-slate-600 p-3 bg-slate-50 rounded-xl leading-relaxed">
-                {projectDescription.description}
+                {projectDescription}
               </p>
             </div>
           )}
-          {projectDescription?.highlights?.length > 0 && (
-            <div>
-              <h4 className="text-sm font-semibold text-slate-700 mb-2">Highlights</h4>
-              <ul className="space-y-1.5">
-                {projectDescription.highlights.map((h, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-slate-600 p-2.5 bg-slate-50 rounded-xl">
-                    <span className="text-violet-500 flex-shrink-0 mt-0.5">▸</span>
-                    {h}
-                  </li>
-                ))}
-              </ul>
-            </div>
+          
+          {typeof projectDescription === 'object' && projectDescription && (
+            <>
+              {projectDescription.description && (
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-700 mb-2">Description</h4>
+                  <p className="text-sm text-slate-600 p-3 bg-slate-50 rounded-xl leading-relaxed">
+                    {projectDescription.description}
+                  </p>
+                </div>
+              )}
+              {projectDescription.highlights?.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-700 mb-2">Highlights</h4>
+                  <ul className="space-y-1.5">
+                    {projectDescription.highlights.map((h, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-slate-600 p-2.5 bg-slate-50 rounded-xl">
+                        <span className="text-violet-500 flex-shrink-0 mt-0.5">▸</span>
+                        {h}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
           )}
+          
           <div className="flex gap-3">
             <Button variant="secondary" fullWidth onClick={() => { setShowAIResult(false); dispatch(clearAIResults("project")); }}>
               Discard
             </Button>
             <Button variant="primary" fullWidth onClick={applyAIResult}>
-              Apply
+              Apply to Project
             </Button>
           </div>
         </div>
