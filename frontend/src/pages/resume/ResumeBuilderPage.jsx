@@ -9,15 +9,18 @@ import {
 } from "lucide-react";
 
 import {
-  fetchResumeById,
-  createNewResume,
+  fetchResume,
+  createResume,  // Changed from createNewResume to createResume
   resetActiveResume,
-  selectActiveResumeData,
+  selectCurrentResume,
   selectResumeLoading,
+  selectActiveResumeData,
   selectResumeError,
   setTemplate, 
   setColorScheme,
-  updateLocalResume,
+  updateResume,  // Add this for auto-save
+  markSaved,     // Add this to mark when saved
+  loadResumeForEdit,
 } from "../../features/resume/resumeSlice.js";
 import { exportToPDF, getResumeFilename } from "../../utils/pdfExport.js";
 import { resumeService } from "../../services/resumeService.js";
@@ -46,6 +49,7 @@ const ResumeBuilderPage = () => {
   const isLoading = useSelector(selectResumeLoading);
   const resumeData = useSelector(selectActiveResumeData);
   const error = useSelector(selectResumeError);
+  const currentResume = useSelector(selectCurrentResume);
 
   const [showPreview, setShowPreview] = useState(true);
   const [showTemplates, setShowTemplates] = useState(false);
@@ -65,37 +69,72 @@ const ResumeBuilderPage = () => {
         if (!isNew && id) {
           // We have a valid ID, fetch the resume
           console.log("Fetching resume with ID:", id);
-          const result = await dispatch(fetchResumeById(id)).unwrap();
+          const result = await dispatch(fetchResume(id)).unwrap();
           
           if (result?.data?.resume) {
             console.log("Resume loaded successfully");
-            // Resume data is already set by the thunk
+            // Load the resume data into the editor
+            dispatch(loadResumeForEdit(result.data.resume));
           }
         } else if (isNew) {
           // Creating a new resume
           console.log("Creating new resume");
-          const result = await dispatch(createNewResume({
+          const result = await dispatch(createResume({
             title: "Untitled Resume",
             template: "modern",
             colorScheme: {
               primary: "#6366f1",
               secondary: "#8b5cf6",
               accent: "#ec4899",
+              background: "#ffffff",
+              text: "#1f2937",
             },
             personalInfo: {
-              fullName: "Your Name",
+              firstName: "",
+              lastName: "",
               email: "",
               phone: "",
               location: "",
+              linkedin: "",
+              github: "",
+              website: "",
+              portfolio: "",
+              profileImage: "",
+              jobTitle: "",
             },
-            projects: [],
+            summary: "",
             experience: [],
             education: [],
             skills: [],
+            projects: [],
             certifications: [],
+            languages: [],
+            awards: [],
+            volunteerWork: [],
+            customSections: [],
+            sectionOrder: [
+              "summary",
+              "experience",
+              "education",
+              "skills",
+              "projects",
+              "certifications",
+              "languages",
+              "awards",
+            ],
+            targetJobRole: "",
+            targetJobDescription: "",
+            tags: [],
+            notes: "",
           })).unwrap();
           
           console.log("New resume created:", result);
+          
+          // Navigate to the new resume's edit page
+          if (result?.data?.resume?._id) {
+            navigate(`/resumes/${result.data.resume._id}`, { replace: true });
+            return;
+          }
         } else {
           console.error("No valid resume ID provided");
           toast.error("Invalid resume ID");
@@ -115,29 +154,37 @@ const ResumeBuilderPage = () => {
 
     // Cleanup function
     return () => {
-      // Don't reset on unmount if it's a new resume being created
-      if (isNew && !isInitialized) {
-        // Optional: cleanup for new resume
-      }
+      // Optional cleanup
     };
   }, [id, isNew, dispatch, navigate, isInitialized]);
 
-  // Auto-save functionality (optional)
+  // Auto-save functionality
   useEffect(() => {
     if (!isInitialized || !resumeData || isNew) return;
+    
+    // Don't auto-save if there are no unsaved changes
+    if (!resumeData.unsavedChanges && resumeData.lastSaved) return;
     
     const autoSaveTimeout = setTimeout(async () => {
       try {
         console.log("Auto-saving resume...");
-        await resumeService.updateResume(id, resumeData);
-        toast.success("Auto-saved", { icon: "💾", duration: 2000 });
+        const result = await dispatch(updateResume({ 
+          id: id, 
+          data: resumeData 
+        })).unwrap();
+        
+        if (result?.data?.resume) {
+          dispatch(markSaved());
+          toast.success("Auto-saved", { icon: "💾", duration: 2000 });
+        }
       } catch (err) {
         console.error("Auto-save failed:", err);
+        toast.error("Failed to auto-save");
       }
     }, 3000);
     
     return () => clearTimeout(autoSaveTimeout);
-  }, [resumeData, id, isInitialized, isNew]);
+  }, [resumeData, id, isInitialized, isNew, dispatch]);
 
   const handleExportPDF = async () => {
     if (!resumeData) {
@@ -153,6 +200,7 @@ const ResumeBuilderPage = () => {
         await resumeService.trackDownload(id);
         toast.success("Download tracked successfully");
       }
+      toast.success("PDF exported successfully!");
     } catch (err) {
       console.error("Export failed:", err);
       toast.error("Failed to export PDF");
@@ -162,12 +210,12 @@ const ResumeBuilderPage = () => {
   };
 
   // Show loading state
-  if (isLoading && !isInitialized) {
-    return <Loader fullScreen message="Loading resume..." />;
+  if ((isLoading && !isInitialized) || (isNew && !resumeData)) {
+    return <Loader fullScreen message={isNew ? "Creating new resume..." : "Loading resume..."} />;
   }
 
   // Show error state
-  if (error && !resumeData) {
+  if (error && !resumeData && !isNew) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-slate-50">
         <div className="text-center">
@@ -179,11 +227,6 @@ const ResumeBuilderPage = () => {
         </div>
       </div>
     );
-  }
-
-  // Show empty state for new resume without data
-  if (isNew && !resumeData) {
-    return <Loader fullScreen message="Creating new resume..." />;
   }
 
   return (
