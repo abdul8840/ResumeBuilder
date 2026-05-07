@@ -1,11 +1,33 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import Navbar from "./Navbar.jsx";
 import Sidebar from "./Sidebar.jsx";
 import { motion } from "framer-motion";
 
 const DashboardLayout = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Sidebar open by default on desktop
+  const [sidebarOpen, setSidebarOpen] = useState(
+    typeof window !== "undefined" && window.innerWidth >= 1024
+  );
+
+  // Handle responsive sidebar behavior
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setSidebarOpen(true);
+      } else {
+        setSidebarOpen(false);
+      }
+    };
+
+    handleResize();
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -22,7 +44,7 @@ const DashboardLayout = () => {
           onClose={() => setSidebarOpen(false)}
         />
 
-        {/* Main content */}
+        {/* Main Content */}
         <motion.main
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

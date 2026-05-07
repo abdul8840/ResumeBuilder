@@ -22,6 +22,7 @@ import Badge from "../../components/common/Badge.jsx";
 import Modal from "../../components/common/Modal.jsx";
 import Loader from "../../components/common/Loader.jsx";
 import { TEMPLATES, COLOR_PRESETS } from "../../utils/constants.js";
+import toast from "react-hot-toast";
 
 const PREVIEW_SCALES = {
   sm: 0.4,
