@@ -201,3 +201,157 @@ and a comprehensive analytics dashboard.
 ---
 
 ## 📁 Project Structure
+
+resume-builder/
+│
+├── 📂 backend/
+│ ├── 📄 server.js # Entry point — creates HTTP server
+│ ├── 📄 package.json # Dependencies & scripts
+│ ├── 📄 .env # Environment variables (gitignored)
+│ ├── 📄 .env.example # Environment variable template
+│ │
+│ └── 📂 src/
+│ ├── 📄 app.js # Express app — middleware & routes
+│ │
+│ ├── 📂 config/
+│ │ ├── 📄 db.js # MongoDB connection
+│ │ ├── 📄 cloudinary.js # Cloudinary SDK setup + helpers
+│ │ └── 📄 imagekit.js # ImageKit SDK setup + helpers
+│ │
+│ ├── 📂 models/
+│ │ ├── 📄 User.js # User schema (auth, profile, stats)
+│ │ ├── 📄 Resume.js # Resume schema (all sections + ATS)
+│ │ └── 📄 Analytics.js # Analytics events schema
+│ │
+│ ├── 📂 controllers/
+│ │ ├── 📄 authController.js # Register, login, logout, reset password
+│ │ ├── 📄 resumeController.js # CRUD, duplicate, archive, public view
+│ │ ├── 📄 aiController.js # All 8 Gemini AI endpoints
+│ │ ├── 📄 imageController.js # Upload, BG removal, asset upload
+│ │ └── 📄 analyticsController.js # Dashboard stats, resume analytics
+│ │
+│ ├── 📂 middleware/
+│ │ ├── 📄 auth.js # JWT protect, authorize, optional auth
+│ │ ├── 📄 errorHandler.js # Global error handler
+│ │ ├── 📄 rateLimiter.js # API, auth, AI rate limiters
+│ │ └── 📄 upload.js # Multer memory storage config
+│ │
+│ ├── 📂 routes/
+│ │ ├── 📄 authRoutes.js # /api/auth/*
+│ │ ├── 📄 resumeRoutes.js # /api/resumes/*
+│ │ ├── 📄 aiRoutes.js # /api/ai/*
+│ │ ├── 📄 imageRoutes.js # /api/images/*
+│ │ └── 📄 analyticsRoutes.js # /api/analytics/*
+│ │
+│ └── 📂 utils/
+│ ├── 📄 generateToken.js # JWT access + refresh token generators
+│ ├── 📄 emailService.js # Welcome & password reset emails
+│ └── 📄 helpers.js # sanitizeUser, paginate, extractText…
+│
+└── 📂 frontend/
+├── 📄 index.html # Vite HTML entry
+├── 📄 vite.config.js # Vite + Tailwind config
+├── 📄 package.json
+├── 📄 .env # Frontend env vars
+│
+└── 📂 src/
+├── 📄 main.jsx # ReactDOM root + Redux Provider
+├── 📄 App.jsx # Route definitions
+├── 📄 index.css # Tailwind + custom CSS tokens
+│
+├── 📂 app/
+│ └── 📄 store.js # Redux store + persist config
+│
+├── 📂 features/ # Redux Toolkit slices
+│ ├── 📂 auth/
+│ │ └── 📄 authSlice.js # Auth state + 9 async thunks
+│ ├── 📂 resume/
+│ │ └── 📄 resumeSlice.js # Resume state + 30+ actions
+│ ├── 📂 ai/
+│ │ └── 📄 aiSlice.js # AI state + 8 async thunks
+│ └── 📂 analytics/
+│ └── 📄 analyticsSlice.js # Analytics state + thunks
+│
+├── 📂 services/ # Axios API layer
+│ ├── 📄 api.js # Axios instance + interceptors
+│ ├── 📄 authService.js
+│ ├── 📄 resumeService.js
+│ ├── 📄 aiService.js
+│ ├── 📄 imageService.js
+│ └── 📄 analyticsService.js
+│
+├── 📂 hooks/ # Custom React hooks
+│ ├── 📄 useAuth.js
+│ ├── 📄 useResume.js
+│ ├── 📄 useAI.js
+│ └── 📄 useToast.js
+│
+├── 📂 utils/
+│ ├── 📄 constants.js # Templates, colors, skill levels…
+│ ├── 📄 helpers.js # formatDate, createEmpty*, classNames…
+│ ├── 📄 validators.js # Form validation rules
+│ └── 📄 pdfExport.js # jsPDF + html2canvas export logic
+│
+├── 📂 components/
+│ ├── 📂 auth/
+│ │ ├── 📄 ProtectedRoute.jsx
+│ │ └── 📄 GuestRoute.jsx
+│ │
+│ ├── 📂 common/ # Reusable UI components
+│ │ ├── 📄 Button.jsx # 8 variants, sizes, loading state
+│ │ ├── 📄 Input.jsx # Labels, icons, error, password toggle
+│ │ ├── 📄 Modal.jsx # Headless UI dialog with animation
+│ │ ├── 📄 Loader.jsx # Spinner, dots, fullscreen variants
+│ │ ├── 📄 Toast.jsx # react-hot-toast wrapper
+│ │ ├── 📄 Badge.jsx # 9 color variants + dot indicator
+│ │ ├── 📄 Card.jsx # Glass, hover, gradient variants
+│ │ ├── 📄 Avatar.jsx # Image + initials fallback + status
+│ │ ├── 📄 Tooltip.jsx # 4 position animated tooltip
+│ │ ├── 📄 ProgressBar.jsx # Animated, dynamic color
+│ │ ├── 📄 EmptyState.jsx # Emoji/icon + CTA
+│ │ └── 📄 ConfirmDialog.jsx # Accessible confirm modal
+│ │
+│ ├── 📂 layout/
+│ │ ├── 📄 Navbar.jsx # Top bar + notifications + profile
+│ │ ├── 📄 Sidebar.jsx # Animated sidebar + usage tracker
+│ │ ├── 📄 DashboardLayout.jsx # Layout wrapper with Outlet
+│ │ └── 📄 AuthLayout.jsx # Split-panel auth layout
+│ │
+│ └── 📂 resume/
+│ ├── 📄 ResumeBuilder.jsx # DnD builder + auto-save
+│ ├── 📄 ResumePreview.jsx # Live preview router
+│ ├── 📄 AIToolsPanel.jsx # ATS, Job Match, Keywords, Tips
+│ │
+│ ├── 📂 templates/
+│ │ ├── 📄 ModernTemplate.jsx
+│ │ ├── 📄 ClassicTemplate.jsx
+│ │ └── 📄 MinimalTemplate.jsx
+│ │
+│ └── 📂 sections/
+│ ├── 📄 PersonalInfoSection.jsx
+│ ├── 📄 SummarySection.jsx # Voice + AI generation
+│ ├── 📄 ExperienceSection.jsx # AI enhance + achievements
+│ ├── 📄 EducationSection.jsx
+│ ├── 📄 SkillsSection.jsx # AI suggest + categories
+│ ├── 📄 ProjectsSection.jsx # AI description generation
+│ ├── 📄 CertificationsSection.jsx
+│ └── 📄 LanguagesSection.jsx
+│
+└── 📂 pages/
+├── 📄 LandingPage.jsx # Marketing landing page
+├── 📄 NotFoundPage.jsx # 404
+├── 📂 auth/
+│ ├── 📄 LoginPage.jsx
+│ ├── 📄 RegisterPage.jsx
+│ ├── 📄 ForgotPasswordPage.jsx
+│ └── 📄 ResetPasswordPage.jsx
+├── 📂 dashboard/
+│ └── 📄 DashboardPage.jsx # Charts + stats + quick actions
+├── 📂 resume/
+│ ├── 📄 ResumesPage.jsx # Grid/List + CRUD + filters
+│ ├── 📄 ResumeBuilderPage.jsx # Full-screen builder + preview
+│ └── 📄 ResumePreviewPage.jsx # Read-only preview + export
+├── 📂 profile/
+│ └── 📄 ProfilePage.jsx # Photo upload + settings tabs
+└── 📂 analytics/
+└── 📄 AnalyticsPage.jsx # Full analytics with charts
